@@ -1,0 +1,169 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTC Test Results & Progress</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 1000px; margin: 20px auto; background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #5A2A82; text-align: center; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; }
+        th { background-color: #5A2A82; color: white; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .student-row:hover { background-color: #e8e0ef; cursor: pointer; } /* Highlight on hover */
+        .no-results { text-align: center; font-size: 1.1em; color: #777; padding: 20px; }
+        .back-link-container { text-align: center; margin-top: 30px; }
+        .back-link { display: inline-block; background-color: #5A2A82; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 1em; transition: background-color 0.3s ease; }
+        .back-link:hover { background-color: #3e1d5a; }
+        .chart-container {
+            width: 100%;
+            max-width: 700px; /* Adjust as needed */
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #fdfdfd;
+            display: block; /* No longer hidden by default */
+        }
+        .active-chart { display: block !important; }
+        .close-chart {
+            display: block;
+            margin: 10px auto 0;
+            padding: 5px 10px;
+            background-color: #777;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Test Results</h1>
+
+        {% if students_summary %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Tests Taken</th>
+                        <th>Average Score (out of 25)</th>
+                        <th>Latest Test</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students_summary %}
+                    <tr class="student-row" data-student-id="{{ student.student_id }}" data-student-name="{{ student.first_name }} {{ student.last_name }}">
+                        <td>{{ student.first_name }} {{ student.last_name }}</td>
+                        <td>{{ student.num_tests }}</td>
+                        <td>
+                            {% if student.average_score is not None %}
+                                {{ student.average_score|floatformat:1 }} / 25
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>{{ student.latest_test_timestamp|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div id="individual-progress-section">
+                <h2 id="chart-title">Progress for {{ students_summary.0.first_name }} {{ students_summary.0.last_name }}</h2>
+                <div id="progress-chart-container" class="chart-container active-chart">
+                    <canvas id="studentProgressChart"></canvas>
+                </div>
+            </div>
+
+        {% else %}
+            <p class="no-results">No test results found for this student.</p>
+        {% endif %}
+
+        <div class="back-link-container">
+            <a href="{% url 'mtc_checker:student_admin_dashboard' %}" class="back-link">« Back to Student Management</a>
+        </div>
+    </div>
+
+    <script>
+        const studentProgressData = JSON.parse('{{ student_progress_data_json|escapejs }}');
+        // Get the chart canvas
+        const chartCanvas = document.getElementById('studentProgressChart').getContext('2d');
+
+        // Function to create the chart
+        function createChart(data) {
+            return new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels: data.labels, // Timestamps
+                    datasets: [{
+                        label: 'Score (out of 25)',
+                        data: data.scores,
+                        borderColor: '#5A2A82',
+                        backgroundColor: 'rgba(90, 42, 130, 0.1)',
+                        tension: 0.1,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true, // Change to false if you want to set specific dimensions
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 25, // Assuming max score is 25
+                            title: {
+                                display: true,
+                                text: 'Score'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Test Date & Time'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        const total = data.total_questions[context.dataIndex] || 25;
+                                        label += `${context.parsed.y} / ${total}`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Iterate over each data entry to create charts for each student
+                // Get the first student ID from the keys (assuming you want to display the first student's chart by default)
+            const studentId = Object.keys(studentProgressData)[0];
+                if (studentId) {
+                const data = studentProgressData[studentId];
+                if (data && data.scores.length > 0) {
+                        createChart(data);
+                } else {
+                    document.getElementById('chart-title').textContent = `No detailed progress data for this student`;
+                }
+            } else {
+                document.getElementById('chart-title').textContent = `No student data available`;
+            }
+        });
+    </script>
+</body>
+</html>

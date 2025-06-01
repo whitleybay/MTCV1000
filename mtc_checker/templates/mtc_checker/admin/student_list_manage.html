@@ -1,0 +1,48 @@
+{% extends "mtc_checker/admin/admin_base.html" %}
+
+{% block content %}
+<h2>{{ page_title }}</h2>
+
+<div class="upload-section">
+    <h3><i class="fas fa-upload"></i> Upload Students via CSV</h3>
+    <form method="post" action="{% url 'mtc_checker:student_upload_csv' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ upload_form.as_p }}
+        <p><small>CSV Format: Headers should be 'FirstName', 'LastName'. One student per row.</small></p>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-file-csv"></i> Upload File</button>
+    </form>
+</div>
+
+<a href="{% url 'mtc_checker:student_add' %}" class="btn btn-primary" style="margin-bottom: 20px;"><i class="fas fa-plus"></i> Add New Student</a>
+
+{% if students %}
+    <table>
+        <thead>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Student ID (UUID)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.first_name }}</td>
+                <td>{{ student.last_name }}</td>
+                <td>{{ student.student_id }}</td>
+                <td class="actions">
+                    <a href="{% url 'mtc_checker:student_edit' student_id=student.student_id %}" title="Edit"><i class="fas fa-edit"></i></a>
+                    <form method="post" action="{% url 'mtc_checker:student_delete' student_id=student.student_id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete {{ student.first_name }} {{ student.last_name }}?');">
+                        {% csrf_token %}
+                        <button type="submit" class="delete" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No students found.</p>
+{% endif %}
+{% endblock %}

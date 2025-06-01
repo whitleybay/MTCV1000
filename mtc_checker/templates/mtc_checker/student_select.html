@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Student - MTC</title>
+    <style>
+        /* ... (your existing styles) ... */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            min-width: 300px; /* Ensure a minimum width */
+        }
+        h1 {
+            color: #5A2A82;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #333;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 25px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        button, .results-btn {
+            background-color: #5A2A82;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+            min-width: 120px; /* Give buttons a min width */
+        }
+        button:hover, .results-btn:hover {
+            background-color: #3e1d5a;
+        }
+        button:disabled { /* This style is important */
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+        .admin-link {
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+        .admin-link a {
+            color: #555;
+            text-decoration: none;
+        }
+        .admin-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Multiplication Tables Check</h1>
+
+        {% if students %}
+            <label for="student-select">Select Your Name:</label>
+            <select id="student-select" name="student_id">
+                <option value="">-- Select a student --</option>
+                {% for student in students %}
+                    <option value="{{ student.student_id }}">{{ student.first_name }} {{ student.last_name }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="action-buttons">
+                <button id="start-test-btn" disabled>Start Test</button>
+                {% if request.user.is_authenticated and request.user.studentprofile %}
+                    <a href="{% url 'mtc_checker:test_results' student_id=request.user.studentprofile.student_id %}" class="results-btn">View Results</a>
+                {% endif %}
+            </div>
+        {% else %}
+            <p>No students found in the system.</p>
+            <p>Please ask your administrator to add students.</p>
+        {% endif %}
+
+        {% if user.is_authenticated and user.is_staff %}
+            <div class="admin-dashboard-link" style="margin-top: 20px; text-align:center;">
+                <a href="{% url 'mtc_checker:student_admin_dashboard' %}" style="color: #5A2A82; font-weight:bold;">Go to Student Management</a>
+            </div>
+        {% endif %}
+
+        <div class="admin-link">
+            <a href="{% url 'admin:index' %}">Administrator Panel</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const studentSelect = document.getElementById('student-select');
+            const startTestBtn = document.getElementById('start-test-btn');
+
+            // Check if the elements exist before adding event listeners
+            if (studentSelect && startTestBtn) {
+                studentSelect.addEventListener('change', function() {
+                    // 'this.value' will be the student_id or an empty string
+                    if (this.value) { // If a student is selected (value is not empty)
+                        startTestBtn.disabled = false; // Enable the button
+                    } else {
+                        startTestBtn.disabled = true;  // Disable if "-- Select a student --" is chosen
+                    }
+                });
+
+                startTestBtn.addEventListener('click', function() {
+                    if (this.disabled) { // Should not happen if logic is correct, but good check
+                        return;
+                    }
+                    const selectedStudentId = studentSelect.value;
+                    if (selectedStudentId) {
+                        const testUrl = `/test/${selectedStudentId}/`;
+                        window.location.href = testUrl;
+                    } else {
+                        // This case should ideally not be reachable if button is disabled correctly
+                        alert('Please select a student first.');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

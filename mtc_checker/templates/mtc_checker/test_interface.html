@@ -1,0 +1,50 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTC Test - {{ student.first_name }}</title>
+    <link rel="stylesheet" href="{% static 'mtc_checker/css/style.css' %}">
+</head>
+<body>
+    <div class="test-container">
+        <div class="header-bar">
+            <span id="question-counter">P1/3</span>
+            <span id="time-left-display">Time left: 6</span>
+        </div>
+
+        <div class="question-area">
+            <span id="question-text">3 × 2 =</span>
+            <input type="text" id="answer-input" readonly>
+        </div>
+
+        <div class="keypad">
+            <button class="keypad-btn" data-value="1">1</button>
+            <button class="keypad-btn" data-value="2">2</button>
+            <button class="keypad-btn" data-value="3">3</button>
+            <button class="keypad-btn" data-value="4">4</button>
+            <button class="keypad-btn" data-value="5">5</button>
+            <button class="keypad-btn" data-value="6">6</button>
+            <button class="keypad-btn" data-value="7">7</button>
+            <button class="keypad-btn" data-value="8">8</button>
+            <button class="keypad-btn" data-value="9">9</button>
+            <button class="keypad-btn" id="keypad-clear" data-value="C">C</button>
+            <button class="keypad-btn" data-value="0">0</button>
+            <button class="keypad-btn" id="keypad-enter" data-value="Enter">Enter</button>
+        </div>
+        <div id="message-area" style="display:none;"></div>
+    </div>
+
+    <script>
+        const studentId = "{{ student.student_id }}";
+        const practiceQuestions = JSON.parse('{{ practice_questions_json|escapejs }}');
+        const mainQuestions = JSON.parse('{{ main_questions_json|escapejs }}');
+        const numTotalMainQuestions = parseInt('{{ num_total_main_questions }}');
+        const submitUrl = "{% url 'mtc_checker:submit_test' student_id=student.student_id %}";
+        const testCompleteUrlTemplate = `/test/complete/{{ student.student_id }}/PLACEHOLDER_ATTEMPT_ID/`;
+    </script>
+    <script src="{% static 'mtc_checker/js/mtc.js' %}"></script>
+</body>
+</html>
